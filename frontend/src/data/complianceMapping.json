@@ -1,0 +1,22 @@
+{
+  "United States": {
+    "standard": "ADA + Section 508",
+    "description": "US websites must meet ADA requirements. Federal agencies and contractors must comply with Section 508, which references WCAG 2.0 AA. ADA enforcement often points to WCAG 2.1 AA as best practice."
+  },
+  "United Kingdom": {
+    "standard": "Equality Act 2010",
+    "description": "Websites must be accessible under the Equality Act. UK government guidance aligns with WCAG 2.1 AA."
+  },
+  "European Union": {
+    "standard": "EAA (European Accessibility Act)",
+    "description": "The EAA applies to digital services across the EU. It is implemented via EN 301 549, which aligns with WCAG 2.1 AA."
+  },
+  "Canada (Ontario)": {
+    "standard": "AODA",
+    "description": "Ontario requires websites to meet WCAG 2.0 AA. Enforcement applies to businesses with 50+ employees."
+  },
+  "Australia": {
+    "standard": "Disability Discrimination Act",
+    "description": "The DDA requires accessible websites. Australian courts reference WCAG 2.1 AA as the benchmark."
+  }
+}

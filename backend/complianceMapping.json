@@ -1,0 +1,22 @@
+{
+  "United States": {
+    "standard": "ADA & Section 508",
+    "description": "US websites must comply with the ADA and Section 508 accessibility standards."
+  },
+  "United Kingdom": {
+    "standard": "Equality Act 2010",
+    "description": "UK law requires websites to be accessible under the Equality Act 2010, aligned with WCAG 2.1."
+  },
+  "European Union": {
+    "standard": "European Accessibility Act (EAA)",
+    "description": "EU directive requires websites and apps to meet WCAG 2.1 AA accessibility standards."
+  },
+  "Canada": {
+    "standard": "AODA",
+    "description": "Ontario's Accessibility for Ontarians with Disabilities Act (AODA) enforces WCAG compliance for public-facing websites."
+  },
+  "Australia": {
+    "standard": "Disability Discrimination Act (DDA)",
+    "description": "Australia requires websites to provide equal access under the Disability Discrimination Act (DDA)."
+  }
+}
