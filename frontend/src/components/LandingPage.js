@@ -1,6 +1,7 @@
 import { useState } from "react";
 import complianceMapping from "../data/complianceMapping.json";
 import CountryAccordion from "./CountryAccordion";
+      import Footer from "./Footer";
 
 export default function LandingPage() {
   const [url, setUrl] = useState("");
@@ -27,7 +28,7 @@ export default function LandingPage() {
     }, 400);
 
     try {
-      const response = await fetch("http://localhost:4000/scan", {
+      const response = await fetch("https://compliance-checker-be.onrender.com/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, country }),
@@ -362,8 +363,11 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* Country Info Accordion */}
-      <CountryAccordion />
+
+
+  {/* Existing content */}
+  <CountryAccordion />
+  <Footer />
     </div>
   );
 }
