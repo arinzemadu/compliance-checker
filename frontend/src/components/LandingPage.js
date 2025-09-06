@@ -363,9 +363,6 @@ export default function LandingPage() {
         </section>
       )}
 
-
-
-  {/* Existing content */}
   <CountryAccordion />
   <Footer />
     </div>

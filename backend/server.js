@@ -2,89 +2,160 @@ const express = require("express");
 const cors = require("cors");
 const puppeteer = require("puppeteer");
 
-// tiny sleep helper (works in all Puppeteer versions)
+// tiny sleep helper
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+/**
+ * Accessibility Scan (/scan)
+ */
 app.post("/scan", async (req, res) => {
   const { url } = req.body;
 
   if (!url || !/^https?:\/\//i.test(url)) {
-    return res.status(400).json({ error: "Invalid URL (must start with http or https)" });
+    return res
+      .status(400)
+      .json({ error: "Invalid URL (must start with http or https)" });
   }
 
   let browser;
   try {
-
-
     browser = await puppeteer.launch({
-  headless: true,
-  args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  executablePath: puppeteer.executablePath(), // ✅ use bundled Chromium
-});
-
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath: puppeteer.executablePath(),
+    });
 
     const page = await browser.newPage();
+    if (page.setBypassCSP) await page.setBypassCSP(true);
 
-    // Some sites block inline/injected scripts via CSP; this bypasses it.
-    if (page.setBypassCSP) {
-      await page.setBypassCSP(true);
-    }
-
-    // Navigate and wait for DOM
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-
-    // Heuristic: wait until at least some content is present (helps JS-heavy sites)
     try {
       await page.waitForFunction(
         () => document.querySelectorAll("body *").length > 20,
         { timeout: 8000 }
       );
-    } catch (_) {
-      // ignore if it times out; we'll still try to run axe
-    }
+    } catch (_) {}
 
-    // Small extra delay to allow late JS to render
     await sleep(1500);
 
-    // Inject axe-core (use path to avoid issues with inline content)
     await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
 
-    // Verify axe is present in the page context
     const hasAxe = await page.evaluate(() => typeof window.axe !== "undefined");
-    if (!hasAxe) {
-      throw new Error("axe-core failed to inject");
-    }
+    if (!hasAxe) throw new Error("axe-core failed to inject");
 
-    // Run axe on the whole document element
     const results = await page.evaluate(async () => {
       return await window.axe.run(document.documentElement, {
         runOnly: ["wcag2a", "wcag2aa"],
       });
     });
 
-    // Console debug (optional)
-    console.log("AXE:", {
-      violations: results.violations?.length || 0,
-      passes: results.passes?.length || 0,
-      incomplete: results.incomplete?.length || 0,
-    });
-
-    // Always return safe, consistent fields
     res.json({
       url,
       timestamp: new Date().toISOString(),
-      violations: Array.isArray(results.violations) ? results.violations : [],
-      passes: Array.isArray(results.passes) ? results.passes.length : 0,
-      incomplete: Array.isArray(results.incomplete) ? results.incomplete.length : 0,
+      violations: results.violations || [],
+      passes: results.passes?.length || 0,
+      incomplete: results.incomplete?.length || 0,
       raw: results,
     });
   } catch (err) {
     console.error("Scan error:", err);
     res.status(500).json({ error: err.message || "Scan failed" });
+  } finally {
+    if (browser) await browser.close();
+  }
+});
+
+/**
+ * Cookie Compliance Scan (/scan-cookie)
+ */
+app.post("/scan-cookie", async (req, res) => {
+  const { url } = req.body;
+
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return res
+      .status(400)
+      .json({ error: "Invalid URL (must start with http or https)" });
+  }
+
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath: puppeteer.executablePath(),
+    });
+
+    const page = await browser.newPage();
+    if (page.setBypassCSP) await page.setBypassCSP(true);
+
+    // Capture network requests to find third-party domains
+    const thirdPartyDomains = new Set();
+    page.on("request", (req) => {
+      try {
+        const u = new URL(req.url());
+        if (!u.hostname.includes(new URL(url).hostname)) {
+          thirdPartyDomains.add(u.hostname);
+        }
+      } catch {}
+    });
+
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
+    await sleep(2000);
+
+    // Collect cookies
+    const cookies = await page.cookies();
+
+    // Basic banner detection (expand with CMP selectors if needed)
+    const bannerDetected = await page.evaluate(() => {
+      const selectors = ["#cookie-banner", ".cookie-banner", "#onetrust-banner-sdk"];
+      return selectors.some((sel) => document.querySelector(sel));
+    });
+
+    // Build summary
+    const summary = {
+      totalCookies: cookies.length,
+      thirdParty: [...thirdPartyDomains].length,
+      risky: cookies.filter((c) =>
+        /ga|gid|fb|track|ads|marketing/i.test(c.name)
+      ).length,
+      bannerDetected,
+      preConsentCookies: cookies.length, // ⚠️ here we don’t simulate click yet
+    };
+
+    res.json({
+      url,
+      timestamp: new Date().toISOString(),
+      complianceScore:
+        summary.totalCookies === 0
+          ? 100
+          : Math.max(0, 100 - summary.risky * 10),
+      summary,
+      cookies: cookies.map((c) => ({
+        name: c.name,
+        domain: c.domain,
+        expiry: c.expires ? new Date(c.expires * 1000).toISOString() : "Session",
+        category: /ga|gid/i.test(c.name)
+          ? "Analytics"
+          : /ads|fb/i.test(c.name)
+          ? "Advertising"
+          : "Other",
+        firstParty: c.domain.includes(new URL(url).hostname),
+        risky: /ga|gid|fb|track|ads/i.test(c.name),
+      })),
+      banner: {
+        detected: bannerDetected,
+        provider: bannerDetected ? "Unknown/Custom" : null,
+        blocksPreConsent: false, // would need a before/after accept simulation
+        options: bannerDetected ? ["Accept All"] : [],
+      },
+    });
+  } catch (err) {
+    console.error("Cookie scan error:", err);
+    res.status(500).json({ error: err.message || "Cookie scan failed" });
   } finally {
     if (browser) await browser.close();
   }
