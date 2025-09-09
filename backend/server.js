@@ -23,11 +23,16 @@ app.post("/scan", async (req, res) => {
 
   let browser;
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      executablePath: puppeteer.executablePath(),
-    });
+const isRender = process.env.RENDER === "true"; // or use NODE_ENV check
+
+browser = await puppeteer.launch({
+  headless: true,
+  args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  executablePath: isRender
+    ? puppeteer.executablePath()   // Render: use bundled Chromium
+    : undefined,                   // Local: let Puppeteer find Chrome itself
+});
+
 
     const page = await browser.newPage();
     if (page.setBypassCSP) await page.setBypassCSP(true);

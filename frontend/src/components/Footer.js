@@ -13,7 +13,7 @@ export default function Footer() {
     >
       <div style={{ marginBottom: "1rem" }}>
         <img
-          src="/logo.png"
+          src="/src/components/logo.png"
           alt="Compliance Checker Logo"
           width="40"
           height="40"
@@ -23,7 +23,7 @@ export default function Footer() {
       <p>
         Contact us:{" "}
         <a
-          href="mailto:support@yourdomain.com"
+          href="mailto:support@mdutools.com"
           style={{ color: "#1d4ed8", fontWeight: "500" }}
         >
           support@yourdomain.com
