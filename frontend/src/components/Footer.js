@@ -30,7 +30,7 @@ export default function Footer() {
         </a>
       </p>
       <p style={{ marginTop: "0.5rem" }}>
-        &copy; {new Date().getFullYear()} Compliance Checker. All rights
+        &copy; {new Date().getFullYear()} mdu tools. All rights
         reserved.
       </p>
     </footer>

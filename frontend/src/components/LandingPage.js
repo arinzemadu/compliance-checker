@@ -58,7 +58,7 @@ export default function LandingPage() {
   const API_URL =
   window.location.hostname === "localhost"
     ? "http://localhost:4000"
-    : "https://<your-render-backend>.onrender.com";
+    : "https://compliance-checker-be.onrender.com";
 
 
 
@@ -228,7 +228,7 @@ export default function LandingPage() {
         <input
           id="site-url"
           type="url"
-          placeholder="https://example.com"
+          placeholder="https://mdutools.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           style={{
