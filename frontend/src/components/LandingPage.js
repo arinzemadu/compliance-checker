@@ -54,7 +54,13 @@ export default function LandingPage() {
     wordBreak: "break-word",
   };
 
-  const apiBase = process.env.REACT_APP_API_URL || "https://compliance-checker-be.onrender.com";
+  //const apiBase = process.env.REACT_APP_API_URL || "https://compliance-checker-be.onrender.com";
+  const API_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:4000"
+    : "https://<your-render-backend>.onrender.com";
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,7 +79,7 @@ export default function LandingPage() {
     }, 400);
 
     try {
-      const response = await fetch(`${apiBase}/scan`, {
+      const response = await fetch(`${API_URL}/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, country }),

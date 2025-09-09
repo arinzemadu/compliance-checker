@@ -26,7 +26,7 @@ export default function Footer() {
           href="mailto:support@mdutools.com"
           style={{ color: "#1d4ed8", fontWeight: "500" }}
         >
-          support@yourdomain.com
+          support@mdutools.com
         </a>
       </p>
       <p style={{ marginTop: "0.5rem" }}>
