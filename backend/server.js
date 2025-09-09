@@ -20,11 +20,12 @@ app.post("/scan", async (req, res) => {
   try {
 
 
-    browser = await puppeteer.launch({
+browser = await puppeteer.launch({
   headless: true,
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  executablePath: puppeteer.executablePath(), // ✅ use bundled Chromium
+  executablePath: puppeteer.executablePath(), 
 });
+
 
 
     const page = await browser.newPage();
