@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const puppeteer = require("puppeteer");
+const CHROME_PATH =
+  process.env.CHROME_PATH || puppeteer.executablePath();
 
 // tiny sleep helper (works in all Puppeteer versions)
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -23,7 +25,7 @@ app.post("/scan", async (req, res) => {
 browser = await puppeteer.launch({
   headless: true,
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  executablePath: puppeteer.executablePath(),
+  executablePath: CHROME_PATH,
 });
 
 console.log("Puppeteer executable path:", puppeteer.executablePath());
