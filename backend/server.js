@@ -23,8 +23,9 @@ app.post("/scan", async (req, res) => {
 browser = await puppeteer.launch({
   headless: true,
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  executablePath: puppeteer.executablePath(), 
+  executablePath: puppeteer.executablePath(),
 });
+
 
 
 
