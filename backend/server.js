@@ -26,6 +26,7 @@ browser = await puppeteer.launch({
   executablePath: puppeteer.executablePath(),
 });
 
+console.log("Puppeteer executable path:", puppeteer.executablePath());
 
 
 
