@@ -11,10 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/**
- * Try to find a vendored Chromium binary under:
- * node_modules/playwright/.local-browsers/**/(chrome|headless_shell)
- */
+
 function findVendoredChromium() {
   try {
     const base = path.join(__dirname, "node_modules", "playwright", ".local-browsers");
