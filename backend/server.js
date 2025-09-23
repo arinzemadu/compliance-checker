@@ -1,47 +1,23 @@
 const express = require("express");
 const cors = require("cors");
 const { chromium } = require("playwright");
-const { execSync } = require("child_process");
 
+// tiny sleep helper
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Launch Chromium with a vendored-first approach and a guarded fallback.
-async function launchBrowser() {
-  try {
-    return await chromium.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-  } catch (err) {
-    // If Render is still forcing a cache path or the vendored browser wasn't found,
-    // fall back to a runtime install *once* to unblock.
-    const msg = String(err || "");
-    const looksLikeMissingExec =
-      msg.includes("Executable doesn't exist") || msg.includes("playwright install");
+// Launch a singleton browser once
+const browserPromise = (async () => {
+  return chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+})();
 
-    if (!looksLikeMissingExec) throw err;
-
-    console.warn("⚠️ Playwright browser not found at runtime. Installing chromium now...");
-    try {
-      // Install to vendored path as well (PLAYWRIGHT_BROWSERS_PATH=0)
-      execSync("PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium", { stdio: "inherit" });
-      return await chromium.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-    } catch (installErr) {
-      console.error("❌ Runtime install failed:", installErr);
-      throw err;
-    }
-  }
-}
-
-// Reuse a single browser; isolate per request with contexts.
-let browserPromise = launchBrowser();
+app.get("/health", (_req, res) => res.type("text/plain").send("ok"));
 
 app.post("/scan", async (req, res) => {
   const { url } = req.body;
@@ -62,7 +38,9 @@ app.post("/scan", async (req, res) => {
     await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
 
     const results = await page.evaluate(async () => {
-      return await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] });
+      return await window.axe.run(document, {
+        runOnly: ["wcag2a", "wcag2aa"],
+      });
     });
 
     res.json({
