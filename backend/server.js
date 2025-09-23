@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const { chromium } = require("playwright");
+const fs = require("fs");
+const path = require("path");
 
 // tiny sleep helper
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -9,11 +11,42 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Launch a singleton browser once
+/**
+ * Try to find a vendored Chromium binary under:
+ * node_modules/playwright/.local-browsers/**/(chrome|headless_shell)
+ */
+function findVendoredChromium() {
+  try {
+    const base = path.join(__dirname, "node_modules", "playwright", ".local-browsers");
+    if (!fs.existsSync(base)) return null;
+
+    const builds = fs.readdirSync(base)
+      .filter((d) => d.startsWith("chromium")) // chromium-XXXX or chromium_headless_shell-XXXX
+      .map((d) => path.join(base, d));
+
+    for (const b of builds) {
+      const linuxChrome = path.join(b, "chrome-linux", "chrome");
+      const linuxHeadless = path.join(b, "chrome-linux", "headless_shell");
+      if (fs.existsSync(linuxChrome)) return linuxChrome;
+      if (fs.existsSync(linuxHeadless)) return linuxHeadless;
+    }
+  } catch (_) {}
+  return null;
+}
+
+const vendoredChromiumPath = findVendoredChromium();
+if (vendoredChromiumPath) {
+  console.log("🧭 Using vendored Chromium:", vendoredChromiumPath);
+} else {
+  console.log("⚠️ Vendored Chromium not found; Playwright will use its default resolution.");
+}
+
+// Launch a singleton browser once (fail fast if missing)
 const browserPromise = (async () => {
   return chromium.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    ...(vendoredChromiumPath ? { executablePath: vendoredChromiumPath } : {})
   });
 })();
 
@@ -38,9 +71,7 @@ app.post("/scan", async (req, res) => {
     await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
 
     const results = await page.evaluate(async () => {
-      return await window.axe.run(document, {
-        runOnly: ["wcag2a", "wcag2aa"],
-      });
+      return await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] });
     });
 
     res.json({
@@ -49,7 +80,7 @@ app.post("/scan", async (req, res) => {
       violations: results.violations || [],
       passes: results.passes?.length || 0,
       incomplete: results.incomplete?.length || 0,
-      raw: results,
+      raw: results
     });
   } catch (err) {
     console.error("Scan error:", err);
